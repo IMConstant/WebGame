@@ -1,4 +1,6 @@
 import GameManager from "./gameManager.js";
+import {Position} from "../basics/basics.js";
+import {Vector} from "../basics/basics.js";
 
 export default class ObjectManager {
     constructor() {
@@ -33,9 +35,32 @@ export default class ObjectManager {
         this.killAllFromDeadList();
     }
 
+    addToDeathList(entityId) {
+        this.deadList.push(entityId);
+    }
+
     update() {
         for (let entity of this.entities.values()) {
             entity.update();
+
+            this.checkMapCollisions(entity);
+        }
+    }
+
+    checkMapCollisions(entity) {
+        if (!entity.hasComponent('move') || entity.hasGroup('bullet')) {
+            return;
+        }
+
+        let map = GameManager.getInstance().map;
+        let entityPosition = entity.getComponent('position').position;
+        let tileInfo = map.getTileInfoByPosition(entityPosition);
+
+        if (!tileInfo.walkable) {
+            let prevPosition = entity.getComponent('move').previusPosition;
+
+            entityPosition.x = prevPosition.x;
+            entityPosition.y = prevPosition.y;
         }
     }
 
@@ -44,6 +69,10 @@ export default class ObjectManager {
             entity.reset();
             GameManager.getInstance().animationManager.removeAnimation(entity.id);
         }
+
+        this.entities.clear();
+        this.groupedEntities.clear();
+        console.log(this.entities);
     }
 
     clear() {
@@ -54,7 +83,23 @@ export default class ObjectManager {
         this.entities = [];
     }
 
-    draw() {
+    draw(sorted=false, comparator=null) {
+        if (sorted) {
+            let entities = [];
+
+            for (let entity of this.entities.values()) {
+                entities.push(entity);
+            }
+
+            entities.sort(comparator);
+
+            for (let entity of entities) {
+                entity.draw();
+            }
+
+            return;
+        }
+
         for (let entity of this.entities.values()) {
             entity.draw();
         }
@@ -71,9 +116,10 @@ export default class ObjectManager {
     }
 
     killAllFromDeadList() {
-        for (let entity of this.deadList) {
-            this.entities.get(entity).reset();
-            this.entities.delete(entity);
+        for (let key of this.deadList) {
+            let entity = this.entities.get(key);
+            //entity.reset();
+            this.entities.delete(key);
         }
 
         this.deadList = [];

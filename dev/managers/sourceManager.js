@@ -4,5 +4,14 @@ export default class SourceManager {
         this.backroundPattern = null;
 
         this.textures = new Map();
+        this.assets = new Map();
+    }
+
+    addAsset(assetName, asset) {
+        this.assets.set(assetName, asset);
+    }
+
+    getAssetByName(assetName) {
+        return this.assets.get(assetName);
     }
 }

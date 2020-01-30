@@ -1,0 +1,120 @@
+*{
+	box-sizing: border-box;
+}
+
+.main-menu{
+	position:absolute;
+	left:0;
+	top:0;
+	height:100%;
+	width:100%;
+	padding:25px;
+}
+.main-menu>div{
+	position:relative;
+	height:100%;
+	width:100%;
+}
+.block-main-menu{
+
+	position:absolute;
+	top:0;
+	left:0;
+
+	background-color:white;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+	border-radius:10px;
+
+	padding:15px;
+
+	display:flex;
+	flex-flow:column nowrap;
+
+	width:240px;
+}
+
+.button{
+	width:100%;
+	padding:8px;
+
+	font-size:15px;
+
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	border-radius:6px;
+	border:0px;
+
+	outline:none;
+}
+
+.button>img{
+	height:15px;
+	margin-right:10px;
+}
+p{
+	margin:0;
+}
+.button-link{
+	position:relative;
+}
+.button-link>a{
+	position:absolute;
+	left:0;
+	top:0;
+	width:100%;
+	height:100%;
+
+	outline:none;
+}
+
+.block-main-menu>button{
+	color:white;
+	cursor:pointer;
+	transition:box-shadow .3s;
+}
+.block-main-menu>button:hover{
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+.menu-button-play{
+	background-color:#0ca2ca;
+}
+.menu-button-option{
+	margin-top:55px;
+	background-color:#a700e4;
+}
+
+.block-made-by{
+	position:absolute;
+	right:0;
+	bottom:0;
+	background-color:white;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+	border-radius:10px;
+
+	padding:15px;
+
+	display:flex;
+}
+@keyframes tytyy {
+	from {
+		transform:translate(5px, 5px);
+		color:#0ca2ca;
+	}
+
+	to {
+		transform:translate(-5px, -5px);
+		color:#a700e4;
+	}
+}
+.block-made-by>.title{
+	margin-left:15px;
+	font-weight:600;
+
+	animation-duration: 2s;
+	animation-name: tytyy;
+	animation-iteration-count: infinite;
+	animation-direction: alternate;
+}
+
+

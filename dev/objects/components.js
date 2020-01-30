@@ -1,5 +1,6 @@
 import {Position, Vector} from "../basics/basics.js";
 import GameManager from "../managers/gameManager.js";
+import eventManager from "../managers/eventManager.js";
 
 let imageRotate = function(image, angle) {
     image.style.transform = `rotate(${angle}deg)`;
@@ -43,10 +44,10 @@ export class CMovable extends Component {
 
         this.directionVector = directionVector;
         this.velocity = velocity;
-        this.cPosition = null;
 
         this.currentDirection = 0;
-        this.cCircleShape = null;
+        this.previousDirection = "stand";
+        this.previusPosition = new Position(0, 0);
     }
 
     init() {
@@ -57,7 +58,32 @@ export class CMovable extends Component {
 
     update() {
         super.update();
+
+        this.previusPosition.x = this.cPosition.position.x;
+        this.previusPosition.y = this.cPosition.position.y;
+
         let cCircleShape = this.entity.getComponent('circleShape');
+        let currentDirection = 'stand';
+        let directionVectorAngle = 180 * Math.atan2(this.directionVector.y, this.directionVector.x) / Math.PI;
+
+        if (directionVectorAngle > -45 && directionVectorAngle < 45) {
+            currentDirection = 'moveRight';
+        }
+        else if (directionVectorAngle > -135 && directionVectorAngle < -45) {
+            currentDirection = 'moveUp';
+        }
+        else if (directionVectorAngle > 45 && directionVectorAngle < 135) {
+            currentDirection = 'moveDown';
+        }
+        else {
+            currentDirection = 'moveLeft';
+        }
+
+        if (this.previousDirection !== currentDirection) {
+            this.previousDirection = currentDirection;
+
+            GameManager.getInstance().eventManager.addEvent(currentDirection, this.entity);
+        }
 
         this.cPosition.position.x += this.directionVector.x * this.velocity;
         this.cPosition.position.y += this.directionVector.y * this.velocity;
@@ -82,61 +108,122 @@ export class CMovable extends Component {
         }
     }
 
-    right() {
+    moveRight() {
         this.currentDirection = 100;
         this.directionVector.x = 1;
         this.directionVector.y = 0;
     }
 
-    left() {
+    moveLeft() {
         this.currentDirection = 97;
         this.directionVector.x = -1;
         this.directionVector.y = 0;
     }
 
-    up() {
+    moveUp() {
         this.currentDirection = 119;
         this.directionVector.x = 0;
         this.directionVector.y = -1;
     }
 
-    down() {
+    moveDown() {
         this.currentDirection = 115;
         this.directionVector.x = 0;
         this.directionVector.y = 1;
     }
 
-    stop() {
+    stop(direction=null) {
         this.currentDirection = 0;
         this.directionVector.x = 0;
         this.directionVector.y = 0;
     }
 }
 
-export class CAbleToHaveTarget extends CMovable {
-    constructor() {
-        super();
+export class CSmoothMove extends CMovable {
+    constructor(velocity=0, directionVector=new Vector(0, 0)) {
+        super(velocity, directionVector);
 
-        this.target = null;
+        this.directionVelocities = new Map([
+            ['up', [false, 0]],
+            ['right', [false, 0]],
+            ['down', [false, 0]],
+            ['left', [false, 0]]
+        ]);
     }
 
     update() {
-        if (!this.target) {
-            return;
+        this.previusPosition.x = this.cPosition.position.x;
+        this.previusPosition.y = this.cPosition.position.y;
+
+        let deltaX = this.directionVelocities.get('right')[1] - this.directionVelocities.get('left')[1];
+        let deltaY = this.directionVelocities.get('down')[1] - this.directionVelocities.get('up')[1];
+        let currentDirection = null;
+
+        if (deltaX >= 0 && Math.abs(deltaY) < deltaX) {
+            currentDirection = 'moveRight';
+        }
+        else if (deltaY >= 0 && Math.abs(deltaX) < deltaY) {
+            currentDirection = 'moveDown';
+        }
+        else if (deltaX < 0 && Math.abs(deltaY) < -deltaX) {
+            currentDirection = 'moveLeft';
+        }
+        else {
+            currentDirection = 'moveUp';
         }
 
-        let radiusVector = new Vector(this.target.x - this.cPosition.position.x, this.target.y - this.cPosition.position.y);
-        let length = Math.sqrt(Math.pow(radiusVector.x, 2) + Math.pow(radiusVector.y, 2));
+        if (deltaY === 0 && deltaX === 0) {
+            currentDirection = 'moveStop';
+        }
 
-        this.directionVector.x = radiusVector.x / length;
-        this.directionVector.y = radiusVector.y / length;
+        if (currentDirection !== this.previousDirection) {
+            this.previousDirection = currentDirection;
 
-        super.update();
+            GameManager.getInstance().eventManager.addEvent(currentDirection, this.entity);
+        }
+
+        this.cPosition.position.x += this.directionVelocities.get('right')[1] - this.directionVelocities.get('left')[1];
+        this.cPosition.position.y += this.directionVelocities.get('down')[1] - this.directionVelocities.get('up')[1];
+
+        for (let direction of this.directionVelocities.keys()) {
+            if (this.directionVelocities.get(direction)[0]) {
+                this.updateDirection(direction);
+            }
+        }
+    }
+
+    updateDirection(direction) {
+        let velocity = this.directionVelocities.get(direction)[1];
+        velocity += 0.07 * (this.velocity - velocity);
+        this.directionVelocities.get(direction)[1] = velocity;
+    }
+
+    moveUp() {
+        this.directionVelocities.get('up')[0] = true;
+    }
+
+    moveRight() {
+        this.directionVelocities.get('right')[0] = true;
+    }
+
+    moveDown() {
+        this.directionVelocities.get('down')[0] = true;
+    }
+
+    moveLeft() {
+        this.directionVelocities.get('left')[0] = true;
+    }
+
+    stop(direction) {
+        let velocityState = this.directionVelocities.get(direction);
+
+        velocityState[0] = false;
+        velocityState[1] = 0;
     }
 }
 
-export class CCircle extends Component {
-    constructor(ctx, radius=2, style='red') {
+export class CCircleShape extends Component {
+    constructor(ctx=GameManager.getInstance().ctx, radius=0, style='transparent') {
         super();
 
         this.ctx = ctx;
@@ -163,11 +250,12 @@ export class CCircle extends Component {
 
             let gradient = this.ctx.createLinearGradient(startPosition.x, startPosition.y, endPosition.x, endPosition.y);
 
-            gradient.addColorStop(.0, 'black');
-            gradient.addColorStop(.6, 'rgba(' + 255 + ',' + 255 + ',' + 0 + ',' + 0.1 + ')');
-            gradient.addColorStop(.6, 'rgba(' + 155 + ',' + 155 + ',' + 0 + ',' + 0.01 + ')');
+            gradient.addColorStop(.0, this.style);
+            gradient.addColorStop(.6, 'rgba(' + 255 + ',' + 255 + ',' + 0 + ',' + 0.3 + ')');
+            gradient.addColorStop(.8, 'rgba(' + 155 + ',' + 155 + ',' + 0 + ',' + 0.01 + ')');
             gradient.addColorStop(1, 'transparent');
 
+            this.ctx.save();
             this.ctx.strokeStyle = gradient;
             this.ctx.beginPath();
             this.ctx.moveTo(startPosition.x, startPosition.y);
@@ -176,6 +264,7 @@ export class CCircle extends Component {
             this.ctx.lineTo(endPosition.x, endPosition.y);
             this.ctx.closePath();
             this.ctx.stroke();
+            this.ctx.restore();
         }
         else {
             this.ctx.fillStyle = this.style;
@@ -192,9 +281,17 @@ export class CTimeDestroy extends Component {
         super();
 
         this.timeToDeath = timeToDeath;
-        setTimeout(function (component) {
-            component.entity.alive = false;
-        }, this.timeToDeath, this);
+        this.counter = 0;
+    }
+
+    update() {
+        super.update();
+
+        this.counter++;
+
+        if (this.counter === this.timeToDeath) {
+            this.entity.destroy();
+        }
     }
 }
 
@@ -202,10 +299,9 @@ export class CShootable extends Component {
     constructor(weapon, shootingRate) {
         super();
 
-        this.timerID = null;
+        this.reloading = weapon.reloading;
         this.shooting = false;
         this.targetPosition = null;
-        this.shootingRate = shootingRate;
         this.weapon = weapon;
 
         this.trigger = new Audio("../audio/kurock.mp3");
@@ -213,7 +309,10 @@ export class CShootable extends Component {
 
     update() {
         if (this.weapon.checkReload()) {
-            GameManager.getInstance().animationManager.addBasicAnimation('reloading', this.entity);
+            if (!this.reloading) {
+                GameManager.getInstance().eventManager.addEvent('reloadingOn', this.entity);
+                this.reloading = true;
+            }
 
             if (this.shooting) {
                 this.trigger.volume = 0.45;
@@ -223,7 +322,10 @@ export class CShootable extends Component {
             this.weapon.reload();
         }
         else {
-            GameManager.getInstance().animationManager.removeAnimation(this.entity.id);
+            if (this.reloading) {
+                GameManager.getInstance().eventManager.addEvent('reloadingOff', this.entity);
+                this.reloading = false;
+            }
 
             if (this.shooting) {
                 this.shoot();
@@ -252,8 +354,8 @@ export class CShootable extends Component {
             ctx.rotate(-angle + Math.PI / 2);
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, 20, 2);
-            let width = 100;
-            let height = 30;
+            let width = 50;
+            let height = 15;
             ctx.drawImage(this.weapon.texture, -30, -8, width, height);
             ctx.restore();
     }
@@ -273,9 +375,15 @@ export class CShootable extends Component {
         let bullets = this.weapon.shoot(bulletStartPosition, bulletDirection, this.entity.getComponent('circleShape').radius)
 
         if (bullets) {
-            let audio = new Audio("../audio/laser.mp3");
+            let audio = new Audio(this.weapon.shootSound);
             audio.volume = 0.15;
             audio.play();
+
+            if (this.entity.hasGroup('enemy')) {
+                for (let bullet of bullets) {
+                    bullet.addGroup('enemy');
+                }
+            }
 
             this.entity.manager.addEntities(bullets);
         }
@@ -311,8 +419,10 @@ export class CHasGravity extends Component {
     update() {
         let subjectToGravityGroup = this.entity.manager.getGroup('subjectToGravity');
 
-        for (let entity of subjectToGravityGroup) {
-            this.correctDirection(entity);
+        if (subjectToGravityGroup) {
+            for (let entity of subjectToGravityGroup) {
+                this.correctDirection(entity);
+            }
         }
     }
 
@@ -360,11 +470,17 @@ export class CSolid extends Component {
                 let position = this.cPosition.position;
                 let entityRadius = entity.getComponent('circleShape').radius;
                 let entityPosition = entity.getComponent('position').position;
+                let directionVector = new Vector(position.x - entityPosition.x, position.y - entityPosition.y);
 
                 let distance = Math.sqrt(Math.pow(position.x - entityPosition.x, 2) + Math.pow(position.y - entityPosition.y, 2));
 
-                if (distance <= radius + entityRadius) {
-                    this.updateCollision(this.entity, entity);
+                if (distance < radius + entityRadius) {
+                    if (this.updateCollision(this.entity, entity) && this.entity.hasComponent('move')) {
+                        let radiusVector = new Vector(directionVector.x / distance, directionVector.y / distance);
+                        let offset = radius - (distance - entityRadius); //current entity offset
+                        position.x += radiusVector.x * offset;
+                        position.y += radiusVector.y * offset;
+                    }
                 }
             }
         }
@@ -374,7 +490,11 @@ export class CSolid extends Component {
 
     updateCollision(e1, e2) {
         if (e1.hasGroup('bullet') && e2.hasGroup('bullet')) {
-            return;
+            return false;
+        }
+
+        if (e1.hasGroup('enemy') && e2.hasGroup('enemy')) {
+            return false;
         }
 
         if (e1.hasComponent('hp') && e2.hasComponent('damage')) {
@@ -386,6 +506,8 @@ export class CSolid extends Component {
                 e.getComponent('hitCount').hitCount -= 1;
             }
         }
+
+        return !e1.hasGroup('bullet') && !e2.hasGroup('bullet');
     }
 }
 
@@ -441,12 +563,13 @@ export class CEnemyAICore extends Component {
     }
 
     update() {
-        if (this.target) {
-            if (Math.random() < 0.05) {
-                this.cShooting.shootingOn(this.target.getComponent('position').position);
-            }
-            else {
-                this.cShooting.shootingOff();
+        if (this.target && this.target.isAlive()) {
+            if (this.cShooting) {
+                if (Math.random() < 0.05) {
+                    this.cShooting.shootingOn(this.target.getComponent('position').position);
+                } else {
+                    this.cShooting.shootingOff();
+                }
             }
 
             let cMove = this.entity.getComponent('move');
@@ -458,14 +581,100 @@ export class CEnemyAICore extends Component {
 
             cMove.directionVector = new Vector(radiusVector.x * cMove.velocity, radiusVector.y * cMove.velocity);
 
-            if (length > 400) {
+            if (this.cShooting && length > 400) {
                 this.cShooting.shootingOff();
             }
+        }
+        else {
+            this.cShooting.shootingOff();
         }
     }
 
     reset() {
-        this.cShooting.shootingOff();
+    }
+}
+
+export class CTrack extends Component {
+    constructor(trackSize=0) {
+        super();
+
+        this.trackSize = trackSize;
+        this.points = [];
+    }
+
+    init() {
+        this.cPosition = this.entity.getComponent('position');
+        this.cCircle = this.entity.getComponent('circleShape');
+    }
+
+    updatePositions() {
+        for (let i = 0; i < this.points.length - 1; i++) {
+            this.points[i].x = this.points[i + 1].x;
+            this.points[i].y = this.points[i + 1].y;
+        }
+    }
+
+    update() {
+        let position = new Position(
+            this.cPosition.position.x + GameManager.getInstance().viewManager.worldOffset.x,
+            this.cPosition.position.y + GameManager.getInstance().viewManager.worldOffset.y
+        );
+
+        if (this.points.length > 1) {
+            this.updatePositions();
+        }
+
+        if (this.points.length < this.trackSize) {
+            this.points.push(position);
+        }
+        else {
+            this.points[this.points.length - 1] = position;
+        }
+    }
+
+    draw() {
+        let ctx = GameManager.getInstance().ctx;
+        let startPosition = this.points[this.points.length - 1];
+
+        ctx.strokeStyle = this.cCircle.style;
+        ctx.beginPath();
+        ctx.moveTo(startPosition.x, startPosition.y);
+
+        for (let i = this.points.length - 2; i >= 0; i--) {
+            let position = this.points[i];
+
+            ctx.lineTo(position.x, position.y);
+        }
+
+        ctx.stroke();
+    }
+}
+
+export class CSprite extends Component {
+    constructor(assetName=null, staticImage=null) {
+        super();
+
+        this.assetName = assetName;
+        this.staticImage = staticImage;
+    }
+
+    draw() {
+        if (!this.staticImage) {
+            GameManager.getInstance().animationManager.update(this.entity.id);
+        }
+        else {
+            let manager = GameManager.getInstance();
+            let position = this.entity.getComponent('position').position;
+
+            manager.map.drawTile(manager.ctx,
+                manager.sourceManager.backroundPicture,
+                this.staticImage.tile,
+                this.staticImage.tileSize,
+                position.x - this.staticImage.offsetX,
+                position.y - this.staticImage.offsetY);
+        }
+
+        super.draw();
     }
 }
 

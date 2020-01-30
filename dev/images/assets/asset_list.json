@@ -1,0 +1,26 @@
+{
+  "assets": {
+    "abductor": {
+      "rows": {
+        "stand": [0, 1],
+        "move": [0, 7]
+      },
+
+      "width": 53,
+      "height": 53
+    },
+
+    "character": {
+      "rows": {
+        "stand": [2, 1],
+        "moveUp": [8, 9],
+        "moveLeft": [9, 9],
+        "moveDown": [10, 9],
+        "moveRight": [11, 9]
+      },
+
+      "width": 64,
+      "height": 64
+    }
+  }
+}

@@ -1,5 +1,17 @@
 import {Entity} from "./objects/objects.js";
-import {CPosition, CMovable, CCircle, CTimeDestroy, CShootable, CHasGravity, CSubjectToGravity, CSolid, CHitPoints, CDamage, CEnemyAICore} from "./objects/components.js";
+import {CPosition,
+    CMovable,
+    CCircleShape,
+    CTimeDestroy,
+    CShootable,
+    CHasGravity,
+    CSubjectToGravity,
+    CSolid,
+    CHitPoints,
+    CDamage,
+    CEnemyAICore,
+    CSmoothMove,
+    CSprite} from "./objects/components.js";
 import {Position, Vector} from "./basics/basics.js";
 import {ShellGun, ShotGun} from "./weapons/weapons.js";
 
@@ -7,35 +19,63 @@ export default class ObjectFactory {
     constructor(ctx, entityManager) {
         this.entityManager = entityManager;
         this.ctx = ctx;
+
+        this.enemiesStats = new Map([
+            ['body', {
+                'hp': 100,
+                'damage': 500,
+                'radius': 32,
+                'speed': 1,
+                'weapon': ShellGun.prototype
+            }],
+            ['orc', {
+                'hp': 30,
+                'damage': 200,
+                'radius': 32,
+                'speed': 1.5,
+                'weapon': ShellGun.prototype
+            }],
+            ['skeleton', {
+                'hp': 150,
+                'damage': 1000,
+                'radius': 32,
+                'speed': 0.5,
+                'weapon': ShellGun.prototype
+            }]
+        ]);
     }
 
-    createRandomAsteroid(borders) {
-        let asteroid = new Entity(this.entityManager);
-        let asteroidPosition = new Position(Math.random() * borders.x, Math.random() * borders.y);
-        let vectorXComponent = 2 * Math.random() - 1;
-        let vectorYComponent = Math.sqrt(1 - Math.pow(vectorXComponent, 2));
-        let asteroidVelocity = 0.5 + Math.random();
-        let asteroidDirectionVector = new Vector(vectorXComponent, vectorYComponent);
+    createEnemy(enemyType, position) {
+        let enemy = new Entity(this.entityManager);
+        let enemyStats = this.enemiesStats.get(enemyType);
 
-        asteroid.addComponent('position', CPosition.prototype, asteroidPosition);
-        asteroid.addComponent('move', CMovable.prototype, asteroidVelocity, asteroidDirectionVector);
-        asteroid.addComponent('solid', CSolid.prototype);
-        asteroid.addComponent('subjectToGravity', CSubjectToGravity.prototype);
-        asteroid.addComponent('damage', CDamage.prototype, 300);
-        asteroid.addComponent('hp', CHitPoints.prototype, 50);
-        asteroid.addComponent('circleShape', CCircle.prototype, this.ctx, 20, 'red');
-        asteroid.addComponent('shooting', CShootable.prototype, new ShotGun('cyan'), 2000);
-        asteroid.addComponent('enemy', CEnemyAICore.prototype);
+        enemy.addComponent('position', CPosition.prototype, position);
+        enemy.addComponent('move', CMovable.prototype, enemyStats['speed']);
+        enemy.addComponent('solid', CSolid.prototype);
+        enemy.addComponent('damage', CDamage.prototype, enemyStats['damage']);
+        enemy.addComponent('hp', CHitPoints.prototype, enemyStats['hp']);
+        enemy.addComponent('circleShape', CCircleShape.prototype, this.ctx, enemyStats['radius'], 'transparent');
+        enemy.addComponent('shooting', CShootable.prototype, new enemyStats['weapon'].constructor(), 2000);
+        enemy.addComponent('enemy', CEnemyAICore.prototype);
+        enemy.addComponent('sprite', CSprite.prototype, enemyType);
 
-        asteroid.addGroup('solid');
+        enemy.addGroup('solid');
 
-        return asteroid;
+        return enemy;
     }
 
-    createEnemy() {
-        let enemy = this.createShip();
+    createEmptySprite(copyEntity) {
+        let sprite = new Entity(this.entityManager);
 
-        enemy.addComponent('enemy');
+        let cPosition = copyEntity.getComponent('position');
+        let cCircle = copyEntity.getComponent('circleShape');
+        let cSprite = copyEntity.getComponent('sprite');
+
+        sprite.addComponent('position', CPosition.prototype, new Position(cPosition.position.x, cPosition.position.y));
+        sprite.addComponent('circleShape', CCircleShape.prototype, this.ctx, cCircle.radius, 'transparent');
+        sprite.addComponent('sprite', CSprite.prototype, cSprite.assetName);
+
+        return sprite;
     }
 
     createSimpleObject() {
@@ -53,37 +93,27 @@ export default class ObjectFactory {
         let ship = new Entity(this.entityManager);
 
         ship.addComponent('position', CPosition.prototype, position);
-        ship.addComponent('move', CMovable.prototype, 5);
-        ship.addComponent('circleShape', CCircle.prototype, this.ctx, 15, 'purple');
+        ship.addComponent('move', CSmoothMove.prototype, 2);
+        ship.addComponent('circleShape', CCircleShape.prototype, this.ctx, 32);
         ship.addComponent('shooting', CShootable.prototype, new ShotGun(), shootingRate);
         ship.addComponent('solid', CSolid.prototype);
-        ship.addComponent('hp', CHitPoints.prototype, 100);
+        ship.addComponent('hp', CHitPoints.prototype, 30000);
+        ship.addComponent('sprite', CSprite.prototype, 'elf');
 
         ship.addGroup('solid');
 
         return ship;
     }
 
-    createBullet(startPosition, directionVector) {
-        let bullet = new Entity(this.entityManager);
-
-        bullet.addComponent('position', CPosition.prototype, new Position(startPosition.x, startPosition.y));
-        bullet.addComponent('move', CMovable.prototype, 10, directionVector);
-        bullet.addComponent('circleShape', CCircle.prototype, this.ctx, 1, 'yellow');
-        bullet.addComponent('timeDestroy', CTimeDestroy.prototype, 2000);
-        bullet.addComponent('subjectToGravity', CSubjectToGravity.prototype);
-        bullet.addComponent('solid', CSolid.prototype);
-
-        return bullet;
-    }
-
     createPlanet(position, mass) {
         let planet = new Entity(this.entityManager);
 
         planet.addComponent('position', CPosition.prototype, new Position(position.x, position.y));
-        planet.addComponent('circleShape', CCircle.prototype, this.ctx, 20, 'green');
+        planet.addComponent('circleShape', CCircleShape.prototype, this.ctx, 20, 'green');
         planet.addComponent('hasGravity', CHasGravity.prototype, mass);
         planet.addComponent('solid', CSolid.prototype);
+
+        planet.addGroup('solid');
 
         return planet;
     }

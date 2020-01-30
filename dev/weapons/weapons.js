@@ -13,6 +13,7 @@ export class Weapon {
         this.shootingDelayCounter = 0;
 
         this.texture = null;
+        this.shootSound = null;
     }
 
     shoot() {
@@ -48,6 +49,7 @@ export class Weapon {
         if (this.reloadingTime === this.maxReloadingTime) {
             this.bulletCount = 0;
             this.reloadingTime = 0;
+            this.shootingDelayCounter = this.shootingDelay;
             this.reloading = false;
         }
 
@@ -55,6 +57,11 @@ export class Weapon {
     }
 
     reload() {
+        if (!this.reloading && this.bulletCount !== 0) {
+            this.reloadingTime = 0;
+            this.reloading = true;
+        }
+
         this.reloadingTime += 1;
     }
 }
@@ -65,11 +72,12 @@ export class ShellGun extends Weapon {
 
         this.color = color;
         this.maxBulletCount = 30;
-        this.maxReloadingTime = 200;
-        this.shootingDelay = 8;
+        this.maxReloadingTime = 100;
+        this.shootingDelay = 5;
 
         this.texture = new Image();
         this.texture.src = "../images/AK.png";
+        this.shootSound = "../audio/laser.mp3";
     }
 
     shoot(currentPosition, directionVector, radius) {
@@ -77,9 +85,9 @@ export class ShellGun extends Weapon {
             return;
         }
 
-        let bullet = GameManager.getInstance().ammoFactory.createStandartBullet(this.color, 30);
+        let bullet = GameManager.getInstance().ammoFactory.createStandartBullet('red', 30);
 
-        directionVector.randomDeviation();
+        directionVector.randomDeviation(0.1);
 
         bullet.getComponent('position').position.x = currentPosition.x + 3 * radius * directionVector.x;
         bullet.getComponent('position').position.y = currentPosition.y + 3 * radius * directionVector.y;
@@ -97,10 +105,11 @@ export class ShotGun extends Weapon {
         this.color = color;
         this.maxBulletCount = 8;
         this.maxReloadingTime = 90;
-        this.shootingDelay = 30;
+        this.shootingDelay = 60;
 
         this.texture = new Image();
         this.texture.src = "../images/shotgun.png";
+        this.shootSound = "../audio/shotgun.mp3";
     }
 
     shoot(currentPosition, directionVector, radius) {
@@ -115,7 +124,7 @@ export class ShotGun extends Weapon {
         }
 
         for (let bullet of bullets) {
-            let direction = new Vector(directionVector.x, directionVector.y).randomDeviation(0.06);
+            let direction = new Vector(directionVector.x, directionVector.y).randomDeviation(0.03);
 
             bullet.getComponent('position').position.x = currentPosition.x + 2 * radius * direction.x;
             bullet.getComponent('position').position.y = currentPosition.y + 2 * radius * direction.y;

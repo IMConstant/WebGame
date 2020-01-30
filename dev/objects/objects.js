@@ -1,4 +1,5 @@
 import GameManager from "../managers/gameManager.js";
+import {CCircleShape, CPosition, CSprite} from "./components.js";
 
 export class Entity {
     constructor(manager) {
@@ -46,10 +47,8 @@ export class Entity {
     }
 
     destroy() {
-        this.explosion[Math.floor(this.explosion.length * Math.random())].play();
+        GameManager.getInstance().eventManager.addEvent('destruction', this);
         this.alive = false;
-
-        GameManager.getInstance().animationManager.removeAnimation(this.id);
     }
 
     addComponent(componentName, ComponentType, ...args) {
@@ -82,10 +81,12 @@ export class Entity {
     }
 }
 
-// export class Bullet extends Entity {
-//     constructor(manager) {
-//         super(manager);
-//
-//         this.explosionSound =
-//     }
-// }
+export class Sprite extends Entity {
+    constructor(manager=GameManager.getInstance().entitiesManager) {
+        super(manager);
+
+        this.addComponent('position', CPosition.prototype);
+        this.addComponent('circleShape', CCircleShape.prototype);
+        this.addComponent('sprite', CSprite.prototype);
+    }
+}

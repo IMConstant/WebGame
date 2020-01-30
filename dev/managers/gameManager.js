@@ -16,6 +16,7 @@ export default class GameManager {
         this.objectFactory = null;
         this.ammoFactory = null;
 
+        this.eventManager = null;
         this.animationManager = null;
         this.sourceManager = null;
         this.entitiesManager = null;
