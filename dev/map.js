@@ -1,12 +1,16 @@
 import GameManager from "./managers/gameManager.js";
 import {Sprite} from "./objects/objects.js";
 import {CSolid} from "./objects/components.js";
+import {Position} from "./basics/basics.js";
 
 export default class Map {
     constructor(width, height) {
         this.width = width;
         this.height = height;
         this.ready = false;
+
+        this.spawnPoint = new Position(0, 0);
+        this.nextLevelTile = new Position(0, 0);
 
         this.map = [];
         this.unwalkableList = [];
@@ -21,7 +25,9 @@ export default class Map {
         let tile = this.map.layers[0].data[y * this.map.width + x] - 1;
 
         return {
-            walkable: !this.unwalkableList.includes(tile)
+            walkable: !this.unwalkableList.includes(tile),
+            x: x,
+            y: y
         }
     }
 
@@ -34,6 +40,14 @@ export default class Map {
             if (layerData.type === "objectgroup") {
                 for (let object of layerData.objects) {
                     let tileId = object.gid - 1;
+
+                    if (object.name === 'spawnPoint') {
+                        this.spawnPoint = new Position(object.x, object.y);
+                        continue;
+                    }
+                    else if (object.name === 'nextLevelTrigger') {
+                        this.nextLevelTile = new Position(Math.floor(object.x / 64), Math.floor(object.y / 64));
+                    }
 
                     for (let tile of assetData.tiles) {
                         if (tile.properties && tile.properties[0].name === 'unwalkable' && tile.properties[0].value && !this.unwalkableList.includes(tile.id)) {

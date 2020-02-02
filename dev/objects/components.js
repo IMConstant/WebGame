@@ -384,6 +384,11 @@ export class CShootable extends Component {
                     bullet.addGroup('enemy');
                 }
             }
+            else if (this.entity.id === GameManager.getInstance().player.id) {
+                for (let bullet of bullets) {
+                    bullet.addGroup('player');
+                }
+            }
 
             this.entity.manager.addEntities(bullets);
         }
@@ -499,6 +504,7 @@ export class CSolid extends Component {
 
         if (e1.hasComponent('hp') && e2.hasComponent('damage')) {
             e1.getComponent('hp').incomingDamage += e2.getComponent('damage').damage;
+            e1.killedBy = e2;
         }
 
         for (let e of arguments) {

@@ -12,15 +12,14 @@ export default class ViewManager {
 
     setViewOn(target) {
         this.viewOn = target;
+        this.worldOffset.x = 0;
+        this.worldOffset.y = 0;
 
-        let targetPosition = this.viewOn.getComponent('position').position;
-        this.worldOffset.x = this.center.x - targetPosition.x;
-        this.worldOffset.y = this.center.y - targetPosition.y;
+        this.update();
     }
 
     update() {
         if (this.viewOn && this.viewOn.isAlive()) {
-            console.log(this.worldOffset);
             let targetPosition = this.viewOn.getComponent('position').position;
             let mapWidth = GameManager.getInstance().map.width;
             let mapHeight = GameManager.getInstance().map.height;

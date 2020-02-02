@@ -27,7 +27,8 @@ background.play();
 class Game {
     constructor() {
         this.gameManager = GameManager.getInstance();
-        this.spawnDelay = 5000;
+        this.spawnDelay = 2000;
+        this.currentMap = "./maps/map1.json";
         this.gameOver = false;
         this.restart = false;
 
@@ -37,22 +38,26 @@ class Game {
         GameManager.getInstance().sourceManager = new SourceManager();
         GameManager.getInstance().entitiesManager = new ObjectManager();
         loader.loadAssets();
-        loader.loadMap('./maps/map1/map1.json');
+        loader.loadMap(this.currentMap);
         GameManager.getInstance().objectFactory = new ObjectFactory(ctx, GameManager.getInstance().entitiesManager);
         GameManager.getInstance().ammoFactory = new AmmoFactory(GameManager.getInstance().objectFactory);
         GameManager.getInstance().entitiesManager.activateObjectFactory(GameManager.getInstance().objectFactory);
-        GameManager.getInstance().player = GameManager.getInstance().objectFactory.createShip(new Position(canvas.width / 2, canvas.height / 2), 100);
+        GameManager.getInstance().player = GameManager.getInstance().objectFactory.createShip(new Position(this.gameManager.map.spawnPoint.x, this.gameManager.map.spawnPoint.y), 100);
         GameManager.getInstance().entitiesManager.addEntity(GameManager.getInstance().player);
         GameManager.getInstance().viewManager = new ViewManager(canvas.width, canvas.height);
         GameManager.getInstance().viewManager.setViewOn(GameManager.getInstance().player);
         GameManager.getInstance().eventManager = new EventManager();
+
+        GameManager.getInstance().eventManager.addGameEventListener('destruction', (entity) => {
+            if (entity.hasGroup('enemy')) {
+
+            }
+        });
     }
 
     init() {
         this.gameManager.eventManager.addGameEventListener('destruction', (entity) => {
             if (entity.id === this.gameManager.player.id) {
-                background.pause();
-
                 this.gameOver = true;
 
                 let audio = new Audio('./audio/death.mp3');
@@ -80,9 +85,9 @@ class Game {
 
     reload() {
         this.gameManager.entitiesManager.resetAll();
-        loader.loadMap('./maps/map1/map1.json');
+        loader.loadMap(this.currentMap);
         this.gameManager.animationManager.clear();
-        this.gameManager.player = GameManager.getInstance().objectFactory.createShip(new Position(canvas.width / 2, canvas.height / 2), 100);
+        this.gameManager.player = GameManager.getInstance().objectFactory.createShip(new Position(this.gameManager.map.spawnPoint.x, this.gameManager.map.spawnPoint.y), 100);
         this.gameManager.entitiesManager.addEntity(this.gameManager.player);
         this.gameManager.viewManager.setViewOn(this.gameManager.player);
         this.gameManager.eventManager.clear();
@@ -104,40 +109,42 @@ class Game {
         });
     }
 
-    spawnCycle(game) {
+    spawnCycle() {
         let enemy = null;
         let p = Math.random();
-        let enemyPosition = new Position(Math.random() * game.gameManager.map.width,
-            Math.random() * game.gameManager.map.height);
+        let enemyPosition = new Position(Math.random() * this.gameManager.map.width,
+            Math.random() * this.gameManager.map.height);
 
         if (p < 0.7) {
-            enemy = game.gameManager.objectFactory.createEnemy('orc', enemyPosition);
+            enemy = this.gameManager.objectFactory.createEnemy('orc', enemyPosition);
         }
         else if (p < 0.95) {
-            enemy = game.gameManager.objectFactory.createEnemy('body', enemyPosition);
+            enemy = this.gameManager.objectFactory.createEnemy('body', enemyPosition);
         }
         else {
-            enemy = game.gameManager.objectFactory.createEnemy('skeleton', enemyPosition);
+            enemy = this.gameManager.objectFactory.createEnemy('skeleton', enemyPosition);
         }
 
         enemy.addGroup('enemy');
 
-        game.gameManager.entitiesManager.addEntity(enemy);
-        game.gameManager.animationManager.addAnimation(enemy.id,
+        this.gameManager.entitiesManager.addEntity(enemy);
+        this.gameManager.animationManager.addAnimation(enemy.id,
             'character',
             new SpriteAnimation(enemy,
-                game.gameManager.sourceManager.getAssetByName(enemy.getComponent('sprite').assetName),
+                this.gameManager.sourceManager.getAssetByName(enemy.getComponent('sprite').assetName),
                 5,
                 'moveRight'));
 
-        if (game.spawnDelay > 500) {
-            game.spawnDelay -= 100;
+        if (this.spawnDelay > 1000) {
+            this.spawnDelay -= 10;
         }
 
         //game.gameManager.viewManager.setViewOn(enemy);
         //game.gameManager.player = enemy;
 
-        let timer = setTimeout(game.spawnCycle, game.spawnDelay, game);
+        let timer = setTimeout(() => {
+            this.spawnCycle();
+        }, this.spawnDelay);
     }
 
     updatePlayer() {
@@ -148,6 +155,14 @@ class Game {
                 GameManager.getInstance().mousePosition.y - GameManager.getInstance().viewManager.worldOffset.y);
 
             player.getComponent('shooting').setTarget(targetPosition);
+        }
+
+        let position = player.getComponent('position').position;
+        let tileInfo = this.gameManager.map.getTileInfoByPosition(position);
+
+        if (this.gameManager.map.nextLevelTile.x === tileInfo.x && this.gameManager.map.nextLevelTile.y === tileInfo.y) {
+            this.currentMap = "./maps/map2.json";
+            this.restart = true;
         }
     }
 

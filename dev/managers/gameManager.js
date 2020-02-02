@@ -15,6 +15,7 @@ export default class GameManager {
         this.mousePosition = new Position(0, 0);
         this.objectFactory = null;
         this.ammoFactory = null;
+        this.deathCount = 0;
 
         this.eventManager = null;
         this.animationManager = null;

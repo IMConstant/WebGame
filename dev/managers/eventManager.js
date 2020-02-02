@@ -182,6 +182,12 @@ export default class EventManager {
         }]);
 
         this.events.set('destruction', [(entity) => {
+            if (entity.killedBy && entity.killedBy.hasGroup('player')) {
+                GameManager.getInstance().deathCount++;
+
+                console.log('killed count = ', GameManager.getInstance().deathCount);
+            }
+
             this.gameManager.animationManager.removeAnimation(entity.id);
 
             if (entity.hasComponent('sprite')) {

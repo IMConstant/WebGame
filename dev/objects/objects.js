@@ -6,6 +6,7 @@ export class Entity {
         this.manager = manager;
         this.components = new Map();
         this.alive = true;
+        this.killedBy = null;
 
         this.explosion = [new Audio("./audio/body1.mp3"), new Audio('./audio/body2.mp3'), new Audio('./audio/body3.mp3')];
         this.shootSound = new Audio("./audio/lazer.mp3");
