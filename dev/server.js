@@ -6,6 +6,10 @@ let jsn = require('./images/assets/asset_list.json');
 
 server.use(express.static(path.join(__dirname)));
 
+server.get('/', function(req, res, next) {
+    res.redirect('/menu');
+});
+
 server.get('/menu', function(req, res, next) {
     res.sendFile(path.join(__dirname, 'pages/menu.html'));
 });
@@ -14,6 +18,10 @@ server.get('/game', function(req, res, next) {
    res.sendFile(path.join(__dirname, 'pages/game.html'));
 });
 
+server.get('/space', function(req, res, next) {
+    res.sendFile(path.join(__dirname, 'pages/space.html'));
+});
+
 server.listen(3000, function () {
-    console.log('Listenning on port 3000!');
+    console.log('Listening on port 3000!');
 });
