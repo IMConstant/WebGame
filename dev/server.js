@@ -22,6 +22,6 @@ server.get('/space', function(req, res, next) {
     res.sendFile(path.join(__dirname, 'pages/space.html'));
 });
 
-server.listen(3000, function () {
-    console.log('Listening on port 3000!');
+server.listen(3302, function () {
+    console.log('Listening on port 3302!');
 });
